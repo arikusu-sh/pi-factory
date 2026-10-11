@@ -1,5 +1,5 @@
 ---
-description: Light-lane review of the current branch (no mission): one fresh reviewer on another model family
+description: "Light-lane review of the current branch (no mission): one fresh reviewer on another model family"
 ---
 Light-lane review for change `$1` against base `$2` (ADR-001 D11). For a fix with blast-radius checks, prefer /factory-fix.
 
