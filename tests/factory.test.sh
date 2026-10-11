@@ -45,6 +45,8 @@ const walk=(d)=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=
   if(m)for(const l of m[1].split("\n")){const k=l.match(/^[\w-]+:\s+(.*)$/);if(k&&!/^["\x27[{|>]/.test(k[1])&&/: /.test(k[1]))out.push(p+": "+l);}}}};
 walk(".pi");console.log(out.join("\n"));')"
 [ -z "$bad_fm" ] && t "every installed prompt, agent and skill has valid frontmatter (no unquoted ': ')" || fail "frontmatter YAML" "$bad_fm"
+node -e 'const r=require("./.pi/settings.json").retry; process.exit(r && r.enabled && r.maxRetries >= 1 ? 0 : 1)' \
+  && t "Pi retries on rate limits in an installed repo" || fail "retry settings" "$(cat .pi/settings.json)"
 grep -q 'every docs/agents/quality-bar-\*.md' .factory/briefs/code-steward.md && t "the steward brief reads the packs' quality bars" || fail "steward pack brief"
 if bash "$root/scripts/factory/install-into.sh" "$repo" --pack nope --no-branch >/dev/null 2>&1; then fail "unknown pack must fail"; fi
 t "an unknown pack is refused"
