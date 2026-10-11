@@ -1,5 +1,5 @@
 ---
-description: Fix lane for small changes: blast radius, checks, one fresh reviewer (no mission)
+description: "Fix lane for small changes: blast radius, checks, one fresh reviewer (no mission)"
 ---
 Arguments: `$@`. Forms:
 - `<slug> start "<what>" [--mission <feature>]`

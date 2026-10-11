@@ -38,6 +38,13 @@ bash "$root/scripts/factory/install-into.sh" "$repo" --pack api --pack batch >"$
 [ -f .factory/ci/factory.gitlab-ci.yml ] && [ -f docs/factory/CHEATSHEET.md ] && t "CI template and cheat sheet installed" || fail "CI template"
 [ -f docs/agents/contract-checklist-api.md ] && [ -f docs/agents/quality-bar-batch.md ] && [ ! -f docs/agents/contract-checklist-bots.md ] \
   && t "only the requested practice packs are installed" || fail "packs" "$(ls docs/agents)"
+bad_fm="$(node -e '
+const fs=require("fs"),path=require("path");const out=[];
+const walk=(d)=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);
+  if(e.isDirectory())walk(p);else if(p.endsWith(".md")){const m=fs.readFileSync(p,"utf8").match(/^---\n([\s\S]*?)\n---/);
+  if(m)for(const l of m[1].split("\n")){const k=l.match(/^[\w-]+:\s+(.*)$/);if(k&&!/^["\x27[{|>]/.test(k[1])&&/: /.test(k[1]))out.push(p+": "+l);}}}};
+walk(".pi");console.log(out.join("\n"));')"
+[ -z "$bad_fm" ] && t "every installed prompt, agent and skill has valid frontmatter (no unquoted ': ')" || fail "frontmatter YAML" "$bad_fm"
 grep -q 'every docs/agents/quality-bar-\*.md' .factory/briefs/code-steward.md && t "the steward brief reads the packs' quality bars" || fail "steward pack brief"
 if bash "$root/scripts/factory/install-into.sh" "$repo" --pack nope --no-branch >/dev/null 2>&1; then fail "unknown pack must fail"; fi
 t "an unknown pack is refused"
