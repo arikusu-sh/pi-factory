@@ -76,8 +76,11 @@ bash "$root/scripts/factory/install-into.sh" "$repo2/sub" >"$work/install3.log" 
 [ -z "$(git -C "$repo2" show --name-only --format= HEAD | grep -v '^sub/')" ] && [ -f "$repo2/sub/.factory/VERSION" ] \
   && git -C "$repo2" diff --quiet -- sub && ! git -C "$repo2" diff --quiet -- z.js \
   && grep -q '"projectRootResolution": "nearest"' "$repo2/sub/.pi/settings.json" \
+  && grep -q '^## Monorepo project' "$repo2/sub/AGENTS.md" && grep -q 'folder `sub`' "$repo2/sub/AGENTS.md" \
   && t "a monorepo project installs into its folder only" || fail "monorepo install scope" "$(cat "$work/install3.log"; git -C "$repo2" show --stat HEAD)"
 mkdir -p "$repo2/kid"; echo k > "$repo2/kid/k.js"
+bash "$root/scripts/factory/install-into.sh" "$repo2/sub" --no-branch >/dev/null 2>&1
+[ "$(grep -c '^## Monorepo project' "$repo2/sub/AGENTS.md")" = 1 ] && t "monorepo: the 'repo root = project folder' note is written once" || fail "monorepo note twice"
 bash "$root/scripts/factory/install-into.sh" "$repo2/kid" --no-branch --ci child >"$work/install4.log" 2>&1 || fail "child install" "$(cat "$work/install4.log")"
 ci="$repo2/kid/.factory/ci/factory.gitlab-ci.yml"
 [ "$(grep -c 'parent_pipeline" && \$FACTORY_MR_TARGET$' "$ci")" = 4 ] && ! grep -q 'merge_request_event' "$ci" && grep -q 'strategy: depend' "$ci" \
