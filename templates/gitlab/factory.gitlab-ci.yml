@@ -24,8 +24,9 @@ factory-gate:
     - command -v bash >/dev/null && command -v git >/dev/null || apk add --no-cache bash git
     - git config --global --add safe.directory "$CI_PROJECT_DIR"
   script:
-    - git fetch --no-tags origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
-    - bash scripts/factory/gate.sh mr "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+    - TARGET="${CI_MERGE_REQUEST_TARGET_BRANCH_NAME:-$FACTORY_MR_TARGET}"
+    - git fetch --no-tags origin "$TARGET"
+    - bash scripts/factory/gate.sh mr "origin/$TARGET"
 
 # Pinned skills untouched and unshadowed; every subagent on its own model,
 # judges on other families (D31, D36).
