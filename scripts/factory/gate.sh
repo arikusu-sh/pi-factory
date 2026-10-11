@@ -179,7 +179,7 @@ case "$mode" in
   mr)
     base="${2:?usage: gate.sh mr <base-ref>}"
 
-    if [[ ",${CI_MERGE_REQUEST_LABELS:-}," == *",factory:bypass,"* ]]; then
+    if [[ ",${CI_MERGE_REQUEST_LABELS:-${FACTORY_MR_LABELS:-}}," == *",factory:bypass,"* ]]; then   # FACTORY_MR_*: passed down to a child pipeline (D57)
       echo "WARNING: factory:bypass label set. Gates skipped; this is visible in the MR and counted."
       exit 0
     fi

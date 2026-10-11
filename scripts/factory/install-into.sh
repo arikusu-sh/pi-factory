@@ -8,17 +8,19 @@
 # feature MRs stay feature-sized (D48).
 #
 # Usage (from the template repo root):
-#   scripts/factory/install-into.sh <path-to-target-repo> [--pack <name>]... [--no-branch]
+#   scripts/factory/install-into.sh <path-to-target-repo> [--pack <name>]... [--no-branch] [--ci mr|child]
+#   --ci child: the project's CI runs as a child pipeline (trigger: include:) (D57).
 #   Packs (packs/<name>/): practice content for a shape of software (api,
 #   batch); repo-owned once copied. See packs/README.md (D54).
 set -euo pipefail
 
 src="$(cd "$(dirname "$0")/../.." && pwd)"
 dst="${1:?usage: install-into.sh <path-to-target-repo> [--pack <name>]... [--no-branch]}"; shift
-branch_mode=1; packs=()
+branch_mode=1; packs=(); ci_mode=mr
 while [ $# -gt 0 ]; do
   case "$1" in
     --no-branch) branch_mode=0; shift ;;
+    --ci) case "${2:-}" in mr|child) ci_mode="$2"; shift 2 ;; *) echo "--ci takes mr or child"; exit 2 ;; esac ;;
     --pack) [ -d "$src/packs/${2:-}" ] || { echo "unknown pack '${2:-}' (see $src/packs/)"; exit 2; }
             packs+=("$2"); shift 2 ;;
     *) echo "unknown option: $1"; exit 2 ;;
@@ -73,21 +75,32 @@ put .factory/VERSION template
 mkdir -p "$dst/.factory/ci"
 # In a monorepo every project includes its own copy (D56): job names get the
 # project's slug, jobs run only when the project changed, from its folder.
-node - "$src/templates/gitlab/factory.gitlab-ci.yml" "$dst/.factory/ci/factory.gitlab-ci.yml" "$prefix" <<'NODE'
+node - "$src/templates/gitlab/factory.gitlab-ci.yml" "$dst/.factory/ci/factory.gitlab-ci.yml" "$prefix" "$ci_mode" <<'NODE'
 const fs = require("fs");
-const [from, to, prefix] = process.argv.slice(2);
+const [from, to, prefix, mode] = process.argv.slice(2);
 let y = fs.readFileSync(from, "utf8");
+const MR = /^(\s*)- if: \$CI_PIPELINE_SOURCE == "merge_request_event"$/gm;
+if (mode === "child") {
+  // D57: started by the parent's trigger job, which passes the MR's target
+  // and labels down; the parent already decides when this project changed.
+  const n = (y.match(MR) || []).length;
+  y = y.replace(MR, '$1- if: $CI_PIPELINE_SOURCE == "parent_pipeline" && $FACTORY_MR_TARGET');
+  if (!n || (y.match(/parent_pipeline/g) || []).length !== n) { console.error("CI template: child rules not rewritten; update install-into.sh"); process.exit(1); }
+}
 if (prefix) {
   const slug = prefix.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");   // full path: two "bot" folders can't collide
   const q = JSON.stringify(prefix);
   const jobs = (y.match(/^[a-z][\w-]*:$/gm) || []).filter((k) => k !== "variables:").length;
   y = y.replace(/^(factory-gate|factory-config|behavior-replay|factory-readiness):$/gm, `$1-${slug}:`)
-       .replace(/^(\s*)- if: \$CI_PIPELINE_SOURCE == "merge_request_event"$/gm, `$1- if: $CI_PIPELINE_SOURCE == "merge_request_event"\n$1  changes: [${JSON.stringify(prefix + "/**/*")}]`)
+       .replace(MR, `$1- if: $CI_PIPELINE_SOURCE == "merge_request_event"\n$1  changes: [${JSON.stringify(prefix + "/**/*")}]`)
        .replace(/^  script:\n/gm, `  script:\n    - cd ${q}\n`);
   const renamed = (y.match(new RegExp(`^[a-z-]+-${slug}:$`, "gm")) || []).length;
-  const scoped = (y.match(/^\s+changes: \[/gm) || []).length;
+  const scoped = (y.match(/^\s+changes: \[/gm) || []).length + (y.match(/parent_pipeline/g) || []).length;
   if (renamed !== jobs || scoped !== jobs) { console.error(`CI template: ${renamed}/${jobs} jobs renamed, ${scoped} scoped; update install-into.sh`); process.exit(1); }
   y = `# Monorepo project: ${prefix}. Include from your CI with:\n#   include: [{ local: ${JSON.stringify(prefix + "/.factory/ci/factory.gitlab-ci.yml")} }]\n` + y;
+}
+if (mode === "child") {
+  y = `# Child pipeline (D57). The parent's trigger job must pass the MR down and wait for the result:\n#   variables: { FACTORY_MR_TARGET: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME, FACTORY_MR_LABELS: $CI_MERGE_REQUEST_LABELS }\n#   trigger: { include: <this project's CI file>, strategy: depend }\n` + y;
 }
 fs.writeFileSync(to, y);
 NODE
@@ -185,7 +198,7 @@ Left for you in $dst:
   2. .factory/behavior-paths    which paths change the bot's behavior
      docs/agents/quality-bar.md the quality bar G5 judges against: sharpen it for this repo
   In Pi, trust the project once so .pi/extensions/factory-guard.ts (command guard) loads.
-  3. .gitlab-ci.yml             add:  include: [{ local: ${prefix:+$prefix/}.factory/ci/factory.gitlab-ci.yml }]  (in a monorepo: the CI that runs for this project)
+  3. .gitlab-ci.yml             add:  include: [{ local: ${prefix:+$prefix/}.factory/ci/factory.gitlab-ci.yml }]  (in a monorepo: the CI that runs for this project)$( [ "$ci_mode" = child ] && printf '\n     parent trigger job         add:  variables FACTORY_MR_TARGET / FACTORY_MR_LABELS and strategy: depend (see the header of .factory/ci/factory.gitlab-ci.yml)')
   4. GitLab                     enable "Pipelines must succeed"
   5. /setup-matt-pocock-skills  local markdown tracker in .scratch/
 Then, in Pi from $dst: scripts/factory/doctor.sh, /subagents-models (9 factory-* agents).
