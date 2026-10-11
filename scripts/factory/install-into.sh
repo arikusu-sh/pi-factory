@@ -133,6 +133,9 @@ const cur = fs.existsSync(dstFile) ? JSON.parse(fs.readFileSync(dstFile, "utf8")
 const had = !!cur.subagents;
 const { agentOverrides: _ignored, ...tplSub } = tpl.subagents;          // models live in agent frontmatter (D31)
 cur.subagents = { ...tplSub, ...(cur.subagents || {}) };
+// Retries on rate limits (mission 1: a shared quota of about 10 requests per
+// window); yours win if already set.
+if (tpl.retry && !cur.retry) cur.retry = tpl.retry;
 // In a monorepo the project is this folder, not the git root (D56).
 if (prefix) cur.subagents.projectRootResolution = "nearest";
 const ov = cur.subagents.agentOverrides || {};
@@ -140,7 +143,7 @@ for (const k of Object.keys(ov)) if (k.startsWith("factory-")) delete ov[k];  //
 if (cur.subagents.agentOverrides && !Object.keys(ov).length) delete cur.subagents.agentOverrides;
 fs.mkdirSync(require("path").dirname(dstFile), { recursive: true });
 fs.writeFileSync(dstFile, JSON.stringify(cur, null, 2) + "\n");
-console.log(`  .pi/settings.json: ${had ? "merged (your existing subagents values kept)" : "factory subagents block added"}`);
+console.log(`  .pi/settings.json: ${had ? "merged (your existing subagents values kept)" : "factory subagents block added"}${cur.retry ? ", retry on rate limits" : ""}`);
 NODE
 
 # Health ratchet (D50): lock in the repo's current metrics once.
