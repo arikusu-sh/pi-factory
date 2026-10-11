@@ -162,6 +162,11 @@ else
   { echo; sed '/^<!--/,/-->$/d' "$src/AGENTS.factory.md"; } >> "$dst/AGENTS.md"
   note "AGENTS.md += factory section"
 fi
+# Monorepo (D56): skills and docs say "repo root"; here that is this folder.
+if [ -n "$prefix" ] && ! grep -q '^## Monorepo project' "$dst/AGENTS.md"; then
+  printf '\n## Monorepo project\n\nThis project is the folder `%s` of a larger git repository. Wherever an instruction or a skill says "repo root" or "project root", it means this folder, not the git root: create `GLOSSARY.md`, `docs/`, `.scratch/` and any new file under it, and never change files outside it.\n' "$prefix" >> "$dst/AGENTS.md"
+  note "AGENTS.md += monorepo project note (repo root = $prefix)"
+fi
 
 # Legacy .agents/ markdown would be loaded as agents by pi-subagents.
 if [ -d "$dst/.agents" ] && [ -n "$(find "$dst/.agents" -name '*.md' -print -quit)" ]; then
