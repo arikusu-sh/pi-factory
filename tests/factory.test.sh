@@ -188,9 +188,9 @@ expect_step build "tests configured"
 echo "Mission: build and review"
 bash scripts/factory/workflow.sh build-wave demo >"$work/wf.log"
 wf="$(sed -n 's/^WORKFLOW_FILE: //p' "$work/wf.log")"
-[ -z "$(git status --porcelain -- .scratch)" ] && t "workflow file committed (clean tree for worktrees)" || fail "workflow file left uncommitted" "$(git status --porcelain)"
 grep -q '"key": "01-hello"' "$wf" && ! grep -q '"key": "02-count"' "$wf" && t "build wave holds only unblocked tickets" || fail "build wave"
 grep -q 'patchOf' "$wf" && t "build wave returns patch paths" || fail "patchOf"
+[ -z "$(git status --porcelain --untracked-files=all -- .scratch)" ] && t "generated workflow is committed (tree stays clean)" || fail "workflow file left untracked"
 
 # A provider error (429…) is not a round: the mission pauses (D58).
 bash scripts/factory/record-no-patch.sh demo 01-hello --provider "429 rate limit" >/dev/null

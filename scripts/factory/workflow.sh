@@ -163,7 +163,8 @@ i=2; while [ -e "$wf_file" ]; do wf_file="$wf_dir/$(date +%Y%m%d-%H%M%S)-$mode-$
   printf '%s\n' "$body"
 } > "$wf_file"
 
-# Commit it: pi-subagents admits a worker worktree only from a clean tree.
+# The file is written after the checkpoints above, so commit it now. An
+# untracked file makes the tree dirty and worktree admission refuses to run.
 if [ "$mode" = "light" ]; then bash "$here/checkpoint.sh" --light "$feature" >/dev/null
 else bash "$here/checkpoint.sh" "$feature" >/dev/null; fi
 
