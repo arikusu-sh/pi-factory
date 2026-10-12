@@ -9,7 +9,12 @@ FACTORY_ROUND_LIMIT="${FACTORY_ROUND_LIMIT:-3}"
 FACTORY_BEHAVIOR_PATHS_FILE="${FACTORY_BEHAVIOR_PATHS_FILE:-.factory/behavior-paths}"
 FACTORY_DOCS_RE="${FACTORY_DOCS_RE:-^(docs/|[^/]*\.md$)}"
 FACTORY_INSTRUMENT_DIR="${FACTORY_INSTRUMENT_DIR:-instrument}"  # hidden from workers (D21)
-FACTORY_MAX_PARALLEL="${FACTORY_MAX_PARALLEL:-4}"               # laptop-sized (D27)
+# Tickets per wave (D27): environment first, then .factory/commands.env, else 4.
+# A gateway with a low request limit wants 1 or 2 (D58).
+if [ -z "${FACTORY_MAX_PARALLEL:-}" ] && [ -f .factory/commands.env ]; then
+  FACTORY_MAX_PARALLEL="$(sed -n 's/^[[:space:]]*\(export[[:space:]]*\)\{0,1\}FACTORY_MAX_PARALLEL=["'"'"']\{0,1\}\([0-9][0-9]*\).*/\2/p' .factory/commands.env | tail -1)"
+fi
+FACTORY_MAX_PARALLEL="${FACTORY_MAX_PARALLEL:-4}"
 FACTORY_SKILLS_DIR="${FACTORY_SKILLS_DIR:-.pi/skills}"          # pinned skills (D36)
 FACTORY_BRIEFS_DIR="${FACTORY_BRIEFS_DIR:-.factory/briefs}"     # brief templates (D32)
 FACTORY_AGENTS_DIR="${FACTORY_AGENTS_DIR:-.pi/agents/factory}"  # models live here (D31)

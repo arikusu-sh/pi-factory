@@ -191,6 +191,17 @@ wf="$(sed -n 's/^WORKFLOW_FILE: //p' "$work/wf.log")"
 grep -q '"key": "01-hello"' "$wf" && ! grep -q '"key": "02-count"' "$wf" && t "build wave holds only unblocked tickets" || fail "build wave"
 grep -q 'patchOf' "$wf" && t "build wave returns patch paths" || fail "patchOf"
 
+# A provider error (429…) is not a round: the mission pauses (D58).
+bash scripts/factory/record-no-patch.sh demo 01-hello --provider "429 rate limit" >/dev/null
+[ ! -f $m/verdicts/01-hello-code.md ] && grep -q "429 rate limit" $m/state/PAUSED.md \
+  && t "provider error = pause, no round" || fail "provider error must pause without a round"
+expect_step paused "paused after provider error"
+bash scripts/factory/pause.sh resume demo >/dev/null
+# Wave size from commands.env (D58).
+[ "$(env -u FACTORY_MAX_PARALLEL bash -c 'printf "FACTORY_MAX_PARALLEL=1\n" >> .factory/commands.env; . scripts/factory/lib.sh; echo $FACTORY_MAX_PARALLEL')" = 1 ] \
+  && t "wave size read from commands.env" || fail "FACTORY_MAX_PARALLEL from commands.env"
+git checkout -q -- .factory/commands.env
+
 # Round 1: no patch. Round 2: failing integration → heavy worker.
 bash scripts/factory/record-no-patch.sh demo 01-hello >/dev/null
 [ -f $m/verdicts/01-hello-code.r1.md ] && t "no patch = failed round 1 (recorded)" || fail "no-patch round"
