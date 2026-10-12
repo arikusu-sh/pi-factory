@@ -190,6 +190,7 @@ bash scripts/factory/workflow.sh build-wave demo >"$work/wf.log"
 wf="$(sed -n 's/^WORKFLOW_FILE: //p' "$work/wf.log")"
 grep -q '"key": "01-hello"' "$wf" && ! grep -q '"key": "02-count"' "$wf" && t "build wave holds only unblocked tickets" || fail "build wave"
 grep -q 'patchOf' "$wf" && t "build wave returns patch paths" || fail "patchOf"
+[ -z "$(git status --porcelain --untracked-files=all -- .scratch)" ] && t "generated workflow is committed (tree stays clean)" || fail "workflow file left untracked"
 
 # Round 1: no patch. Round 2: failing integration → heavy worker.
 bash scripts/factory/record-no-patch.sh demo 01-hello >/dev/null
