@@ -40,7 +40,7 @@ pi install npm:pi-subagents@0.76.1       # remove @tintinweb/pi-subagents if pre
 scripts/factory/install-pi-config.sh     # worktree hook (hides instrument/), concurrency
 ```
 
-Under a small shared quota (about 10 requests per window), set `parallel.concurrency: 1` in `~/.pi/agent/extensions/subagent/config.json` and `export FACTORY_MAX_PARALLEL=1`. The retry block in `.pi/settings.json` (6 × 5 s) absorbs short 429 bursts.
+Under a small shared quota (about 10 requests per window), set `parallel.concurrency: 1` in `~/.pi/agent/extensions/subagent/config.json` and `FACTORY_MAX_PARALLEL=1` in `.factory/commands.env` (or exported). The retry block in `.pi/settings.json` (6 × 5 s) absorbs short 429 bursts. When the provider stops a worker anyway, the lead runs `record-no-patch.sh <mission> <ticket> --provider "<error>"`: no round is lost, the mission pauses, and `/factory <mission>` resumes it once the limit resets.
 
 ## 3. Once per machine (your models)
 

@@ -17,6 +17,7 @@ Loop:
    - `build`: run `scripts/factory/workflow.sh build-wave $1` and pass its `WORKFLOW_FILE` path as above. For each ticket in the result:
      - `patch` is set: `scripts/factory/integrate.sh $1 <ticket> <patch>`.
      - `patch` is null: `scripts/factory/locate-patch.sh $1 <ticket>`; if it prints a path, integrate it; if not, `scripts/factory/record-no-patch.sh $1 <ticket>`.
+     - The worker's run shows a provider error (429, rate limit, quota, 5xx, overloaded, timeout) instead of a report: `scripts/factory/record-no-patch.sh $1 <ticket> --provider "<the error line, verbatim>"`, then stop and show its output. It is not a round, and retrying now burns nothing but the same limit.
      - The output ends with `DECISION NEEDED: <question>`: run `scripts/factory/human.sh ask $1 <ticket> "<question, verbatim>"` instead of integrating, and stop.
      A failed integration is expected and recorded as a round; continue.
    - `review`: `scripts/factory/workflow.sh review-wave $1`, pass its `WORKFLOW_FILE` path as above, then `scripts/factory/collect.sh $1`.
